@@ -166,7 +166,69 @@ export type Database = {
       };
     };
     Functions: {
-      [_ in never]: never;
+      admin_change_role: {
+        Args: {
+          p_actor_id: string;
+          p_ip: unknown;
+          p_new_role: Database["public"]["Enums"]["user_role"];
+          p_reason?: string;
+          p_target_id: string;
+        };
+        Returns: {
+          active: boolean;
+          course: Database["public"]["Enums"]["course"] | null;
+          created_at: string;
+          degree: Database["public"]["Enums"]["degree"] | null;
+          email: string;
+          id: string;
+          name: string;
+          role: Database["public"]["Enums"]["user_role"];
+          updated_at: string;
+        };
+      };
+      admin_create_profile: {
+        Args: {
+          p_actor_id: string;
+          p_course: Database["public"]["Enums"]["course"];
+          p_degree: Database["public"]["Enums"]["degree"];
+          p_email: string;
+          p_ip: unknown;
+          p_name: string;
+          p_role: Database["public"]["Enums"]["user_role"];
+          p_target_id: string;
+        };
+        Returns: {
+          active: boolean;
+          course: Database["public"]["Enums"]["course"] | null;
+          created_at: string;
+          degree: Database["public"]["Enums"]["degree"] | null;
+          email: string;
+          id: string;
+          name: string;
+          role: Database["public"]["Enums"]["user_role"];
+          updated_at: string;
+        };
+      };
+      admin_set_active: {
+        Args: {
+          p_active: boolean;
+          p_actor_id: string;
+          p_ip: unknown;
+          p_reason?: string;
+          p_target_id: string;
+        };
+        Returns: {
+          active: boolean;
+          course: Database["public"]["Enums"]["course"] | null;
+          created_at: string;
+          degree: Database["public"]["Enums"]["degree"] | null;
+          email: string;
+          id: string;
+          name: string;
+          role: Database["public"]["Enums"]["user_role"];
+          updated_at: string;
+        };
+      };
     };
     Enums: {
       course: "1" | "2";
@@ -218,7 +280,8 @@ export type Tables<
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -242,7 +305,8 @@ export type TablesInsert<
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Tables"]
+    | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }
@@ -266,7 +330,8 @@ export type TablesUpdate<
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
+    | keyof DefaultSchema["Enums"]
+    | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals;
   }

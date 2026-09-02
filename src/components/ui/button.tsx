@@ -17,11 +17,18 @@ const variants: Record<NonNullable<ButtonProps["variant"]>, string> = {
     "border-line-strong bg-transparent text-ink-dim px-4 py-2.5 hover:text-ink hover:border-ink",
 };
 
+// Para estilizar un <Link> (navegación) exactamente igual que un botón real
+// sin anidar <button> dentro de <a> (HTML inválido y confuso para lectores
+// de pantalla) — ver /admin/usuarios, enlace "Nuevo usuario".
+export function buttonClassName(
+  variant: NonNullable<ButtonProps["variant"]> = "primary",
+  className = "",
+): string {
+  return `${base} ${variants[variant]} ${className}`.trim();
+}
+
 export function Button({ variant = "primary", className = "", ...props }: ButtonProps) {
   return (
-    <button
-      className={`${base} ${variants[variant]} ${className}`.trim()}
-      {...props}
-    />
+    <button className={buttonClassName(variant, className)} {...props} />
   );
 }

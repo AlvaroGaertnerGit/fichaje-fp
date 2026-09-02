@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 import { logout } from "@/lib/auth/actions";
+import type { UserRole } from "@/types";
 
 const links = [
   { href: "/dashboard", label: "Dashboard" },
@@ -11,8 +12,21 @@ const links = [
   { href: "/historial-global", label: "Historial" },
 ] as const;
 
-export function StaffNavigation({ staffName }: { staffName: string }) {
+export function StaffNavigation({
+  staffName,
+  role,
+}: {
+  staffName: string;
+  role: UserRole;
+}) {
   const pathname = usePathname();
+  // "Admin" solo es visible para quien realmente tiene ese rol — nunca
+  // depende solo de esto: /admin/layout.tsx vuelve a exigir
+  // requireRole(['admin']) en servidor (Fase 6.1 §2), esto es únicamente
+  // para no mostrar un enlace a una zona a la que el usuario no puede
+  // entrar.
+  const allLinks =
+    role === "admin" ? [...links, { href: "/admin", label: "Admin" }] : links;
 
   return (
     <header className="border-b border-ink">
@@ -25,7 +39,7 @@ export function StaffNavigation({ staffName }: { staffName: string }) {
           className="flex items-center gap-1"
           aria-label="Navegación principal"
         >
-          {links.map((link) => {
+          {allLinks.map((link) => {
             const active =
               pathname === link.href || pathname.startsWith(`${link.href}/`);
             return (

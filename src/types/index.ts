@@ -4,6 +4,8 @@
 
 import type { Database } from "./database";
 
+export type { Json } from "./database";
+
 export type Profile = Database["public"]["Tables"]["profiles"]["Row"];
 export type Punch = Database["public"]["Tables"]["punches"]["Row"];
 export type AuditLog = Database["public"]["Tables"]["audit_logs"]["Row"];

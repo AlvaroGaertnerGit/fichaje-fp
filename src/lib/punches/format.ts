@@ -38,12 +38,19 @@ export function formatPunchDate(iso: string): string {
 }
 
 /**
- * "FCH-20260902-902A84CE" — identificador visual del ticket. No es un
- * número de serie inventado: es la fecha real (Europe/Madrid) del fichaje
- * más los primeros 8 caracteres del `id` real del punch (UUID), en
- * mayúsculas. No implica una numeración secuencial que no existe.
+ * "<PREFIJO>-20260902-902A84CE" — referencia documental genérica. No es un
+ * número de serie inventado: es la fecha real (Europe/Madrid) + los
+ * primeros 8 caracteres de un id real (UUID), en mayúsculas. No implica una
+ * numeración secuencial que no existe. Usada por cualquier "documento" del
+ * producto que necesite esa misma sensación de identificador físico/de
+ * archivo (ticket de fichaje, expediente de usuario, entrada de auditoría).
  */
-export function formatPunchSerial(iso: string, id: string): string {
+export function formatDocumentSerial(prefix: string, iso: string, id: string): string {
   const date = isoDateFormatter.format(new Date(iso)).replaceAll("-", "");
-  return `FCH-${date}-${id.slice(0, 8).toUpperCase()}`;
+  return `${prefix}-${date}-${id.slice(0, 8).toUpperCase()}`;
+}
+
+/** "FCH-20260902-902A84CE" — identificador visual del ticket de fichaje. */
+export function formatPunchSerial(iso: string, id: string): string {
+  return formatDocumentSerial("FCH", iso, id);
 }

@@ -10,7 +10,7 @@ export default async function StaffLayout({
 
   return (
     <div className="flex min-h-dvh flex-col bg-paper">
-      <StaffNavigation staffName={profile.name} />
+      <StaffNavigation staffName={profile.name} role={profile.role} />
       <main className="mx-auto w-full max-w-5xl flex-1 px-6 py-10">
         {children}
       </main>
