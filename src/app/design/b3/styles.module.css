@@ -1,0 +1,1260 @@
+/* =============================================================================
+   PROPUESTA B3 — MANIFIESTO, motion + impresión de ticket
+   Misma dirección visual que B2 (composición, tipografía, paleta, concepto de
+   documento): esta iteración NO rediseña, hace que el sistema se comporte
+   como una máquina física de fichaje.
+
+   METÁFORA:  FICHAJE → VALIDACIÓN → IMPRESIÓN → EMISIÓN → ARCHIVO
+
+   SISTEMA DE MOTION — fichar entrada/salida es un evento en 5 fases:
+     LISTO → VALIDANDO → IMPRIMIENDO → SELLO → EMITIDO
+     --dur-instant    90ms   feedback de pulsación (:active)
+     --dur-fast       160ms  hover, focus, tabs
+     --dur-base       240ms  paneles, cambio de vista
+     --dur-validate   280ms  validación (linear, lectura breve del código)
+     --dur-print      480ms  el pase "sale impreso" (clip-path + cabezal)
+     --dur-print-line 200ms  cada línea del pase se revela (interior del print)
+     --stagger-line   60ms   separación entre líneas impresas
+     --dur-flip       190ms  cada media vuelta del estado (x2 = 380ms)
+     --dur-stamp      420ms  impacto del sello (overshoot controlado)
+     --dur-impact     160ms  sacudida física del documento al sellar
+     --dur-settle     220ms  asentamiento final tras emitir
+     --dur-ripple     560ms  onda de tinta del sello
+     --ease-out       cubic-bezier(0.16,1,0.3,1)    entradas, feedback
+     --ease-in-out    cubic-bezier(0.77,0,0.175,1)  movimiento en pantalla
+     --ease-stamp     cubic-bezier(0.34,1.56,0.64,1) impacto del sello
+     --ease-flip-in   cubic-bezier(0.55,0,1,0.45)   el flap se pliega
+     --ease-flip-out  cubic-bezier(0.16,1,0.3,1)    el flap se asienta
+   ============================================================================= */
+
+.root {
+  --ink: #1c1912;
+  --ink-dim: #6c6350;
+  --ink-faint: #a49874;
+  --paper: #efe7d3;
+  --paper-raised: #faf5e7;
+  --paper-shadow: rgba(60, 44, 16, 0.16);
+  --line: #d8cba3;
+  --line-strong: #b9a877;
+  --stamp: #c4590f;
+  --stamp-ink: #8a3f0b;
+  --stamp-soft: #f2ddc0;
+  --danger: #9c3324;
+  --danger-soft: #f0dcd2;
+
+  --dur-instant: 90ms;
+  --dur-fast: 160ms;
+  --dur-base: 240ms;
+  --dur-validate: 280ms;
+  --dur-print: 480ms;
+  --dur-print-line: 200ms;
+  --stagger-line: 60ms;
+  --dur-flip: 190ms;
+  --dur-stamp: 420ms;
+  --dur-impact: 160ms;
+  --dur-settle: 220ms;
+  --dur-ripple: 560ms;
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.77, 0, 0.175, 1);
+  --ease-stamp: cubic-bezier(0.34, 1.56, 0.64, 1);
+  --ease-flip-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-flip-out: cubic-bezier(0.16, 1, 0.3, 1);
+
+  --font-display: var(--font-archivo), ui-sans-serif, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  position: relative;
+  min-height: 100dvh;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--font-display);
+  isolation: isolate;
+}
+
+/* Grano de papel: overlay fijo, no interactivo, nunca sobre contenedores
+   con scroll (coste de repintado). Opacidad mínima a propósito. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 60;
+  pointer-events: none;
+  opacity: 0.045;
+  mix-blend-mode: multiply;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .grain {
+    opacity: 0.03;
+  }
+}
+
+/* ---------- Header ---------- */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 32px;
+  border-bottom: 1.5px solid var(--ink);
+  position: relative;
+}
+
+@media (max-width: 640px) {
+  .topBar {
+    padding: 16px 20px;
+    flex-wrap: wrap;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.brandName {
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+
+.issuerTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  color: var(--stamp-ink);
+  border: 1px solid var(--stamp);
+  padding: 3px 7px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .tabs {
+    margin-left: 0;
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--ink);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+.tabActive {
+  composes: tab;
+  color: var(--ink);
+  border-bottom-color: var(--stamp);
+}
+
+.userMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  flex-shrink: 0;
+}
+
+/* ---------- Main ---------- */
+
+.main {
+  max-width: 1080px;
+  margin: 0 auto;
+  padding: 40px 32px 100px;
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 26px 18px 80px;
+  }
+}
+
+.eyebrow {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+}
+
+/* =============================================================================
+   PASE (componente de documento, reutilizado en hero, detalle y archivo)
+   ============================================================================= */
+
+.pass {
+  margin-top: 26px;
+  display: grid;
+  grid-template-columns: 1fr 216px;
+  background: var(--paper-raised);
+  border: 1.5px solid var(--ink);
+  position: relative;
+  box-shadow: 0 18px 34px -22px var(--paper-shadow), 0 2px 0 0 var(--paper-shadow);
+}
+
+@media (max-width: 620px) {
+  .pass {
+    grid-template-columns: 1fr;
+  }
+}
+
+.passScan {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.passScanLine {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30%;
+  background: linear-gradient(90deg, transparent, rgba(196, 89, 15, 0.28), transparent);
+  transform: translateX(-140%);
+}
+
+.passScanActive .passScanLine {
+  animation: b3-scan var(--dur-validate) linear;
+}
+
+@keyframes b3-scan {
+  from {
+    transform: translateX(-140%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passScanActive .passScanLine {
+    animation-duration: 1ms;
+  }
+}
+
+/* ---------- Cabezal de impresión (fase PRINTING) ---------- */
+/* Franja fija en el borde superior del pase: el "cabezal" activo mientras el
+   documento se revela debajo (clip-path). Solo opacity, sin animar posición. */
+
+.printHead {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 3px;
+  background: linear-gradient(90deg, transparent, var(--stamp), transparent);
+  box-shadow: 0 0 8px 1px rgba(196, 89, 15, 0.55);
+  opacity: 0;
+  animation: b3-print-head var(--dur-print) var(--ease-in-out) forwards;
+  pointer-events: none;
+  z-index: 6;
+}
+
+@keyframes b3-print-head {
+  0% {
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  80% {
+    opacity: 1;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .printHead {
+    display: none;
+  }
+}
+
+/* El pase entero se revela de arriba hacia abajo, como papel saliendo de una
+   ranura, y recibe una sacudida breve en el momento del sello. */
+
+.passPrinting {
+  animation: b3-print-reveal var(--dur-print) var(--ease-in-out) both;
+}
+
+@keyframes b3-print-reveal {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0% 0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passPrinting {
+    animation-duration: 1ms;
+  }
+}
+
+.passImpact {
+  animation: b3-impact var(--dur-impact) var(--ease-out);
+}
+
+@keyframes b3-impact {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passImpact {
+    animation: none;
+  }
+}
+
+.passSettle {
+  animation: b3-settle var(--dur-settle) var(--ease-out);
+  animation-delay: calc(var(--dur-stamp) - 60ms);
+}
+
+@keyframes b3-settle {
+  0% {
+    box-shadow: 0 18px 34px -22px var(--paper-shadow), 0 2px 0 0 var(--paper-shadow);
+  }
+  40% {
+    box-shadow: 0 22px 40px -20px var(--paper-shadow), 0 2px 0 0 var(--paper-shadow);
+  }
+  100% {
+    box-shadow: 0 18px 34px -22px var(--paper-shadow), 0 2px 0 0 var(--paper-shadow);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .passSettle {
+    animation: none;
+  }
+}
+
+/* Líneas impresas: cada campo del pase entra con su propio retraso,
+   simulando una impresora térmica escribiendo renglón a renglón. */
+
+.printLine {
+  opacity: 0;
+  transform: translateY(4px);
+  animation: b3-line-in var(--dur-print-line) var(--ease-out) both;
+  animation-delay: calc(var(--line-i, 0) * var(--stagger-line));
+}
+
+@keyframes b3-line-in {
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .printLine {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
+
+.passHead {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 24px;
+  border-bottom: 1px dashed var(--line-strong);
+}
+
+.passSerial {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  color: var(--stamp);
+  font-weight: 700;
+}
+
+.passIssued {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  color: var(--ink-faint);
+  text-transform: uppercase;
+}
+
+.passMain {
+  padding: 26px 24px 24px;
+}
+
+.passFieldLabel {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.passName {
+  font-size: 1.375rem;
+  font-weight: 700;
+  margin-top: 4px;
+  letter-spacing: -0.01em;
+}
+
+.passMeta {
+  margin-top: 3px;
+  font-size: 0.875rem;
+  color: var(--ink-dim);
+}
+
+.statusRow {
+  margin-top: 22px;
+  display: flex;
+  align-items: flex-end;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+
+.flapWrap {
+  perspective: 500px;
+}
+
+.flap {
+  display: inline-block;
+  font-size: 2.375rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  line-height: 1;
+  transform: rotateX(0deg);
+  will-change: transform;
+}
+
+.flapReady {
+  composes: flap;
+  color: var(--ink-faint);
+}
+
+.flapValidated {
+  composes: flap;
+  color: var(--stamp);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flap {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+.statusDetail {
+  font-family: var(--font-mono);
+  font-size: 0.9375rem;
+  color: var(--ink-dim);
+  padding-bottom: 5px;
+  font-variant-numeric: tabular-nums;
+  transition: opacity 180ms var(--ease-out), filter 180ms var(--ease-out);
+}
+
+.statusDetailFading {
+  composes: statusDetail;
+  opacity: 0.3;
+  filter: blur(2px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .statusDetail,
+  .statusDetailFading {
+    filter: none;
+    transition-duration: 1ms;
+  }
+}
+
+.passFooter {
+  margin-top: 24px;
+  display: flex;
+  gap: 26px;
+  padding-top: 14px;
+  border-top: 1px dashed var(--line-strong);
+}
+
+.passField {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.passFieldValue {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+}
+
+.microtext {
+  margin-top: 18px;
+  font-size: 0.6875rem;
+  color: var(--ink-faint);
+  letter-spacing: 0.02em;
+}
+
+/* ---------- Stub (talón) ---------- */
+
+.passStub {
+  position: relative;
+  padding: 24px 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  border-left: 2px dashed var(--line-strong);
+}
+
+@media (max-width: 620px) {
+  .passStub {
+    border-left: none;
+    border-top: 2px dashed var(--line-strong);
+  }
+}
+
+.perfDot {
+  position: absolute;
+  left: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--paper);
+  border: 1.5px solid var(--ink);
+}
+
+.perfDotTop {
+  composes: perfDot;
+  top: -12px;
+}
+
+.perfDotBottom {
+  composes: perfDot;
+  bottom: -12px;
+}
+
+@media (max-width: 620px) {
+  .perfDot {
+    left: 50%;
+    transform: translateX(-50%);
+  }
+}
+
+.stampZone {
+  width: 96px;
+  height: 96px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.stampRing {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
+  border: 2px dashed var(--line-strong);
+}
+
+.stampRingHidden {
+  composes: stampRing;
+  opacity: 1;
+  transition: opacity var(--dur-fast) var(--ease-out);
+}
+
+.stampRingGone {
+  composes: stampRingHidden;
+  opacity: 0;
+}
+
+.stampRipple {
+  position: absolute;
+  inset: 6px;
+  border-radius: 50%;
+  border: 1.5px solid var(--stamp);
+  opacity: 0;
+  transform: scale(0.7);
+}
+
+.stampRippling {
+  composes: stampRipple;
+  animation: b3-ripple var(--dur-ripple) var(--ease-out) forwards;
+}
+
+@keyframes b3-ripple {
+  0% {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stampRippling {
+    animation-duration: 1ms;
+  }
+}
+
+.stampMark {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--stamp);
+  transform: translateY(-16px) scale(0.4) rotate(-9deg);
+  opacity: 0;
+  transition: transform var(--dur-stamp) var(--ease-stamp), opacity 140ms var(--ease-out);
+}
+
+.stampMarkVisible {
+  composes: stampMark;
+  transform: translateY(0) scale(1) rotate(-7deg);
+  opacity: 1;
+  border: 2.5px solid var(--stamp);
+}
+
+.stampMarkHidden {
+  composes: stampMark;
+  transform: translateY(-16px) scale(0.4) rotate(-9deg);
+  opacity: 0;
+}
+
+.stampWord {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+.barcode {
+  width: 100%;
+  height: 26px;
+  display: flex;
+  align-items: stretch;
+  gap: 1px;
+}
+
+.barcodeBar {
+  background: var(--ink);
+  opacity: 0.6;
+  flex-shrink: 0;
+}
+
+.passAction {
+  width: 100%;
+  padding: 12px 14px;
+  border: 1.5px solid var(--ink);
+  background: var(--ink);
+  color: var(--paper-raised);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-fast) var(--ease-out), letter-spacing var(--dur-fast) var(--ease-out);
+}
+
+.passAction:hover {
+  background: var(--stamp-ink);
+  border-color: var(--stamp-ink);
+}
+
+.passAction:active {
+  transform: scale(0.97);
+}
+
+.passAction:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+.passAction:disabled {
+  opacity: 0.7;
+  cursor: default;
+  letter-spacing: 0.12em;
+}
+
+.passHint {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: var(--ink-dim);
+  max-width: 62ch;
+  line-height: 1.55;
+}
+
+/* =============================================================================
+   ARCHIVO DE JORNADAS (historial)
+   ============================================================================= */
+
+.sectionHead {
+  margin-top: 50px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.archive {
+  margin-top: 14px;
+  border-top: 1.5px solid var(--ink);
+}
+
+.archiveRow {
+  display: grid;
+  grid-template-columns: 56px 70px 1fr 74px 22px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 2px;
+  border-bottom: 1px dashed var(--line);
+}
+
+@media (max-width: 560px) {
+  .archiveRow {
+    grid-template-columns: 44px 1fr 22px;
+  }
+  .archiveDate,
+  .archiveDuration {
+    display: none;
+  }
+}
+
+.archiveFresh {
+  composes: archiveRow;
+  animation: b3-print var(--dur-print) var(--ease-in-out) both;
+}
+
+@keyframes b3-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+    transform: translateY(-6px);
+  }
+  to {
+    clip-path: inset(0 0 0 0);
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archiveFresh {
+    animation: b3-fade-in 160ms ease both;
+  }
+}
+
+@keyframes b3-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+/* Al montar una vista de archivo, las filas se "incorporan" con un pequeño
+   desfase, como si se archivaran documentos uno detrás de otro. */
+
+.archiveSettleIn {
+  animation: b3-file-in var(--dur-base) var(--ease-out) both;
+  animation-delay: calc(var(--row-i, 0) * 35ms);
+}
+
+@keyframes b3-file-in {
+  from {
+    opacity: 0;
+    transform: translateY(5px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .archiveSettleIn {
+    animation-duration: 1ms;
+    animation-delay: 0ms;
+  }
+}
+
+.archiveSerial {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--stamp);
+  font-weight: 700;
+}
+
+.archiveDate {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink-faint);
+}
+
+.archiveTimes {
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.archiveDuration {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--ink-dim);
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.archiveGlyph {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  border: 1.5px solid var(--stamp);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.archiveGlyphFlag {
+  composes: archiveGlyph;
+  border-color: var(--danger);
+}
+
+.archiveRowGlobal {
+  display: grid;
+  grid-template-columns: 56px 1.3fr 70px 1fr 74px 22px;
+  align-items: center;
+  gap: 14px;
+  padding: 12px 2px;
+  border-bottom: 1px dashed var(--line);
+}
+
+@media (max-width: 640px) {
+  .archiveRowGlobal {
+    grid-template-columns: 44px 1fr 22px;
+  }
+  .archiveRowGlobal .archiveDate,
+  .archiveRowGlobal .archiveDuration,
+  .archiveGroupCell {
+    display: none;
+  }
+}
+
+.archiveNameCell {
+  font-weight: 600;
+}
+
+.archiveGroupCell {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  margin-left: 6px;
+}
+
+/* =============================================================================
+   MANIFIESTO DEL PROFESOR
+   ============================================================================= */
+
+.summaryLine {
+  margin-top: 26px;
+  display: flex;
+  align-items: baseline;
+  gap: 4px;
+  font-family: var(--font-mono);
+  font-size: 0.875rem;
+  color: var(--ink-dim);
+  flex-wrap: wrap;
+}
+
+.summaryStrong {
+  color: var(--ink);
+  font-weight: 700;
+}
+
+.controls {
+  margin-top: 26px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  border: 1.5px solid var(--ink);
+}
+
+.filterItem {
+  border: none;
+  background: transparent;
+  color: var(--ink-dim);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-right: 1.5px solid var(--ink);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.filterItem:last-child {
+  border-right: none;
+}
+
+.filterItem:hover {
+  background: var(--stamp-soft);
+}
+
+.filterItem:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: -2px;
+}
+
+.filterItemActive {
+  composes: filterItem;
+  background: var(--ink);
+  color: var(--paper-raised);
+}
+
+.filterItemActive:hover {
+  background: var(--ink);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--ink);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.searchInput::placeholder {
+  color: var(--ink-faint);
+}
+
+.searchInput:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 1px;
+}
+
+.manifest {
+  margin-top: 8px;
+  border-top: 1.5px solid var(--ink);
+}
+
+.manifestRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 56px 1fr 90px 96px;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 2px;
+  border-bottom: 1px dashed var(--line);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--ink);
+  transition: background-color var(--dur-fast) var(--ease-out), transform var(--dur-instant) var(--ease-out);
+}
+
+.manifestRow:hover {
+  background: var(--stamp-soft);
+}
+
+.manifestRow:active {
+  transform: scale(0.997);
+}
+
+.manifestRow:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: -2px;
+}
+
+@media (max-width: 620px) {
+  .manifestRow {
+    grid-template-columns: 44px 1fr 90px;
+  }
+  .manifestTime {
+    display: none;
+  }
+}
+
+.manifestSerial {
+  color: var(--stamp);
+  font-weight: 700;
+}
+
+.manifestName {
+  font-family: var(--font-display);
+  font-weight: 600;
+}
+
+.manifestGroup {
+  color: var(--ink-faint);
+  font-size: 0.75rem;
+  margin-left: 8px;
+}
+
+.manifestTime {
+  text-align: right;
+  color: var(--ink-dim);
+}
+
+.manifestStatus {
+  text-align: right;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+}
+
+.manifestStatusActive {
+  composes: manifestStatus;
+  color: var(--stamp);
+}
+
+.emptyRow {
+  padding: 28px 2px;
+  color: var(--ink-dim);
+  font-size: 0.875rem;
+}
+
+/* ---------- Modal detail ---------- */
+
+.modalScrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(28, 25, 18, 0.5);
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  animation: b3-scrim-in var(--dur-base) var(--ease-out) forwards;
+}
+
+@keyframes b3-scrim-in {
+  to {
+    opacity: 1;
+  }
+}
+
+/* El pase se "extrae" del manifiesto: entra comprimido verticalmente, como un
+   documento plegado que se despliega, en vez de un escalado uniforme. */
+
+.modalBody {
+  width: min(560px, 100%);
+  max-height: 88vh;
+  overflow-y: auto;
+  transform-origin: top center;
+  transform: translateY(-10px) scaleY(0.88) scaleX(0.98);
+  opacity: 0;
+  animation: b3-modal-in var(--dur-base) var(--ease-stamp) forwards;
+}
+
+@keyframes b3-modal-in {
+  to {
+    transform: translateY(0) scaleY(1) scaleX(1);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalScrim,
+  .modalBody {
+    animation-duration: 1ms;
+  }
+}
+
+.modalClose {
+  display: block;
+  margin: 0 0 10px auto;
+  border: 1.5px solid var(--ink);
+  background: var(--paper-raised);
+  color: var(--ink);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.modalClose:hover {
+  background: var(--stamp-soft);
+}
+
+.modalClose:focus-visible {
+  outline: 2px solid var(--stamp);
+  outline-offset: 2px;
+}
+
+/* =============================================================================
+   ESTADOS
+   ============================================================================= */
+
+.statesGrid {
+  margin-top: 24px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.stateCard {
+  border: 1.5px solid var(--ink);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--paper-raised);
+}
+
+.stateCardTitle {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+
+.feedbackOk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--stamp);
+  color: var(--stamp);
+  background: var(--stamp-soft);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.feedbackError {
+  padding: 10px 12px;
+  border: 1.5px solid var(--danger);
+  background: var(--danger-soft);
+  color: var(--danger);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.feedbackErrorTitle {
+  font-weight: 800;
+}
+
+.skeletonLine {
+  height: 12px;
+  background: repeating-linear-gradient(90deg, var(--line) 0 6px, transparent 6px 12px);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--ink-dim);
+  font-size: 0.8125rem;
+}
+
+.emptyStateTitle {
+  font-weight: 700;
+  color: var(--ink);
+}
+
+/* ---------- View transition ---------- */
+
+/* Cambio de vista: la nueva hoja se asienta desde una posición y escala
+   ligeramente distintas, como un documento que se coloca sobre la mesa
+   (no el fundido genérico de un dashboard). */
+
+.viewEnter {
+  transform-origin: top left;
+  animation: b3-view-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes b3-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.992);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewEnter {
+    animation-duration: 1ms;
+  }
+}

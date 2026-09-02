@@ -1,26 +1,140 @@
 @import "tailwindcss";
 
+/* Fundación del design system real, tomada de la exploración /design/b3
+   (Manifiesto): papel cálido, tinta, acento de sello. Ver
+   src/app/design/b3/styles.module.css para el sistema de motion completo;
+   aquí solo viven los tokens que el producto real ya necesita. */
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  --background: #efe7d3;
+  --foreground: #1c1912;
+
+  --color-paper: #efe7d3;
+  --color-paper-raised: #faf5e7;
+  --color-ink: #1c1912;
+  --color-ink-dim: #6c6350;
+  --color-ink-faint: #a49874;
+  --color-line: #d8cba3;
+  --color-line-strong: #b9a877;
+  --color-stamp: #c4590f;
+  --color-stamp-ink: #8a3f0b;
+  --color-stamp-soft: #f2ddc0;
+  --color-danger: #9c3324;
+  --color-danger-soft: #f0dcd2;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --color-paper: var(--color-paper);
+  --color-paper-raised: var(--color-paper-raised);
+  --color-ink: var(--color-ink);
+  --color-ink-dim: var(--color-ink-dim);
+  --color-ink-faint: var(--color-ink-faint);
+  --color-line: var(--color-line);
+  --color-line-strong: var(--color-line-strong);
+  --color-stamp: var(--color-stamp);
+  --color-stamp-ink: var(--color-stamp-ink);
+  --color-stamp-soft: var(--color-stamp-soft);
+  --color-danger: var(--color-danger);
+  --color-danger-soft: var(--color-danger-soft);
+  --font-sans: var(--font-archivo);
+  --font-mono: var(--font-plex-mono);
+
+  --animate-ticket-in: ticket-in 260ms cubic-bezier(0.16, 1, 0.3, 1);
+
+  /* Secuencia de emisión del ticket (fichaje real): VALIDATING → PRINTING →
+     STAMP → ISSUED. Duraciones y curvas heredadas del sistema de motion de
+     /design/b3 (mismo lenguaje, reimplementado con clases reales del
+     producto en vez de CSS Modules de la exploración). */
+  --animate-scan: ticket-scan 900ms linear infinite;
+  --animate-print: ticket-print 480ms cubic-bezier(0.77, 0, 0.175, 1) both;
+  --animate-print-line: ticket-print-line 200ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  --animate-stamp: ticket-stamp 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+  --animate-ripple: ticket-ripple 560ms ease-out both;
+  --animate-impact: ticket-impact 160ms cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@keyframes ticket-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
   }
 }
+
+@keyframes ticket-scan {
+  from {
+    transform: translateX(-140%);
+  }
+  to {
+    transform: translateX(340%);
+  }
+}
+
+@keyframes ticket-print {
+  from {
+    clip-path: inset(0 0 100% 0);
+  }
+  to {
+    clip-path: inset(0 0 0% 0);
+  }
+}
+
+@keyframes ticket-print-line {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes ticket-stamp {
+  from {
+    opacity: 0;
+    transform: translateY(-16px) scale(0.4) rotate(-9deg);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1) rotate(-7deg);
+  }
+}
+
+@keyframes ticket-ripple {
+  from {
+    opacity: 0.55;
+    transform: scale(0.7);
+  }
+  to {
+    opacity: 0;
+    transform: scale(1.5);
+  }
+}
+
+@keyframes ticket-impact {
+  0% {
+    transform: translateY(0);
+  }
+  35% {
+    transform: translateY(2px);
+  }
+  100% {
+    transform: translateY(0);
+  }
+}
+
+/* Las animaciones se aplican siempre vía la variante `motion-safe:` en el
+   propio JSX (p. ej. `motion-safe:animate-print`), que Tailwind ya limita a
+   `@media (prefers-reduced-motion: no-preference)` — bajo `reduce` la
+   animación simplemente no se aplica, sin necesitar un override aquí. */
 
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
 }

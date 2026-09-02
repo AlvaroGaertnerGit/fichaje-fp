@@ -1,0 +1,867 @@
+/* =============================================================================
+   PROPUESTA B — MANIFIESTO (boarding pass / cuadro de salidas)
+   Concepto: fichar es "embarcar" el día. El alumno tiene un pase diario con
+   talón perforado; el profesor lee un manifiesto de embarque, no una tabla
+   de SaaS. El naranja de GSD se usa como color de sello oficial.
+
+   SISTEMA DE MOTION
+     --dur-instant  110ms  → feedback de pulsación
+     --dur-fast     170ms  → hover, focus, tabs
+     --dur-base     260ms  → paneles, filas, aparición de listas
+     --dur-flip     190ms  → cada media vuelta del panel split-flap (x2 = 380ms)
+     --dur-stamp    420ms  → el sello de tinta al fichar
+     --ease-out     cubic-bezier(0.23,1,0.32,1)
+     --ease-in      cubic-bezier(0.55,0,1,0.45)   solo para el pliegue del flap
+     --ease-stamp   cubic-bezier(0.34,1.56,0.64,1) impacto del sello (overshoot)
+   ============================================================================= */
+
+.root {
+  --b-bg: #eee8d9;
+  --b-surface: #faf6ea;
+  --b-surface-raised: #ffffff;
+  --b-ink: #211d14;
+  --b-ink-dim: #6f6752;
+  --b-ink-faint: #9c9478;
+  --b-border: #d8cfb2;
+  --b-border-strong: #c2b78f;
+  --b-accent: #c96a16;
+  --b-accent-ink: #8a4610;
+  --b-accent-soft: #f3ddba;
+  --b-confirm: #3f6b4c;
+  --b-confirm-soft: #dfe9e0;
+  --b-danger: #a13b2c;
+  --b-danger-soft: #f2ded7;
+
+  --dur-instant: 110ms;
+  --dur-fast: 170ms;
+  --dur-base: 260ms;
+  --dur-flip: 190ms;
+  --dur-stamp: 420ms;
+  --ease-out: cubic-bezier(0.23, 1, 0.32, 1);
+  --ease-in: cubic-bezier(0.55, 0, 1, 0.45);
+  --ease-stamp: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  --b-font-display: var(--font-archivo), ui-sans-serif, sans-serif;
+  --b-font-mono: var(--font-plex-mono), ui-monospace, monospace;
+
+  min-height: 100dvh;
+  background: var(--b-bg);
+  color: var(--b-ink);
+  font-family: var(--b-font-display);
+}
+
+/* ---------- Header ---------- */
+
+.topBar {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  padding: 18px 32px;
+  border-bottom: 2px solid var(--b-ink);
+}
+
+@media (max-width: 640px) {
+  .topBar {
+    padding: 16px 20px;
+    flex-wrap: wrap;
+  }
+}
+
+.brand {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.brandName {
+  font-weight: 800;
+  font-size: 1.125rem;
+  letter-spacing: -0.01em;
+}
+
+.brandTag {
+  font-family: var(--b-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  color: var(--b-accent-ink);
+  background: var(--b-accent-soft);
+  border: 1px solid var(--b-border-strong);
+  padding: 3px 8px;
+  border-radius: 3px;
+}
+
+.tabs {
+  display: flex;
+  gap: 4px;
+  margin-left: auto;
+}
+
+@media (max-width: 640px) {
+  .tabs {
+    margin-left: 0;
+    width: 100%;
+    overflow-x: auto;
+  }
+}
+
+.tab {
+  border: none;
+  background: transparent;
+  color: var(--b-ink-dim);
+  font-family: var(--b-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color var(--dur-fast) var(--ease-out), border-color var(--dur-fast) var(--ease-out);
+  white-space: nowrap;
+}
+
+.tab:hover {
+  color: var(--b-ink);
+}
+
+.tab:focus-visible {
+  outline: 2px solid var(--b-accent);
+  outline-offset: 2px;
+}
+
+.tabActive {
+  composes: tab;
+  color: var(--b-ink);
+  border-bottom-color: var(--b-accent);
+}
+
+.userMark {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1.5px solid var(--b-ink);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  flex-shrink: 0;
+}
+
+/* ---------- Main ---------- */
+
+.main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 40px 32px 96px;
+}
+
+@media (max-width: 640px) {
+  .main {
+    padding: 28px 18px 76px;
+  }
+}
+
+.eyebrow {
+  font-family: var(--b-font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--b-ink-dim);
+}
+
+.title {
+  font-size: 1.75rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  margin-top: 4px;
+}
+
+/* ---------- Boarding pass ---------- */
+
+.pass {
+  margin-top: 28px;
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  background: var(--b-surface-raised);
+  border: 1.5px solid var(--b-ink);
+  border-radius: 4px;
+  position: relative;
+  overflow: visible;
+}
+
+@media (max-width: 620px) {
+  .pass {
+    grid-template-columns: 1fr;
+  }
+}
+
+.passMain {
+  padding: 28px 32px;
+}
+
+.passLabel {
+  font-family: var(--b-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--b-ink-faint);
+}
+
+.flapWrap {
+  margin-top: 10px;
+  perspective: 500px;
+}
+
+.flap {
+  display: inline-block;
+  font-size: 2.75rem;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  transform-origin: 50% 50%;
+  transform: rotateX(0deg);
+  will-change: transform;
+}
+
+.flapWorking {
+  composes: flap;
+  color: var(--b-confirm);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .flap {
+    transition: none !important;
+    transform: none !important;
+  }
+}
+
+.passTime {
+  margin-top: 6px;
+  font-family: var(--b-font-mono);
+  font-size: 1.125rem;
+  color: var(--b-ink-dim);
+  font-variant-numeric: tabular-nums;
+}
+
+.passFooter {
+  margin-top: 26px;
+  display: flex;
+  gap: 28px;
+  padding-top: 16px;
+  border-top: 1px dashed var(--b-border-strong);
+}
+
+.passField {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.passFieldLabel {
+  font-family: var(--b-font-mono);
+  font-size: 0.625rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--b-ink-faint);
+}
+
+.passFieldValue {
+  font-family: var(--b-font-mono);
+  font-size: 0.875rem;
+  font-weight: 700;
+}
+
+.passStub {
+  position: relative;
+  padding: 28px 22px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  border-left: 2px dashed var(--b-border-strong);
+}
+
+@media (max-width: 620px) {
+  .passStub {
+    border-left: none;
+    border-top: 2px dashed var(--b-border-strong);
+  }
+}
+
+.notchTop,
+.notchBottom {
+  position: absolute;
+  left: -11px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: var(--b-bg);
+  border: 1.5px solid var(--b-ink);
+}
+
+.notchTop {
+  top: -12px;
+}
+
+.notchBottom {
+  bottom: -12px;
+}
+
+@media (max-width: 620px) {
+  .notchTop,
+  .notchBottom {
+    top: auto;
+    left: 50%;
+    transform: translateX(-50%);
+  }
+  .notchTop {
+    top: -12px;
+  }
+  .notchBottom {
+    bottom: -12px;
+  }
+}
+
+.stampZone {
+  width: 92px;
+  height: 92px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: relative;
+}
+
+.stampMark {
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  border: 3px solid var(--b-accent);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  color: var(--b-accent);
+  transform: scale(0) rotate(-16deg);
+  opacity: 0;
+  transition: transform var(--dur-stamp) var(--ease-stamp), opacity 160ms var(--ease-out);
+}
+
+.stampMarkVisible {
+  composes: stampMark;
+  transform: scale(1) rotate(-10deg);
+  opacity: 1;
+}
+
+.stampMarkHidden {
+  composes: stampMark;
+  transform: scale(0.4) rotate(-10deg);
+  opacity: 0;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .stampMark {
+    transition: opacity 140ms ease;
+  }
+}
+
+.stampWord {
+  font-family: var(--b-font-mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.barcode {
+  width: 100%;
+  height: 30px;
+  background-image: repeating-linear-gradient(
+    90deg,
+    var(--b-ink) 0px,
+    var(--b-ink) 2px,
+    transparent 2px,
+    transparent 4px,
+    var(--b-ink) 4px,
+    var(--b-ink) 5px,
+    transparent 5px,
+    transparent 8px
+  );
+  opacity: 0.55;
+}
+
+.passAction {
+  width: 100%;
+  padding: 12px 16px;
+  border-radius: 3px;
+  border: 1.5px solid var(--b-ink);
+  background: var(--b-ink);
+  color: var(--b-surface);
+  font-family: var(--b-font-mono);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: transform var(--dur-instant) var(--ease-out), background-color var(--dur-fast) var(--ease-out);
+}
+
+.passAction:hover {
+  background: var(--b-accent-ink);
+  border-color: var(--b-accent-ink);
+}
+
+.passAction:active {
+  transform: scale(0.97);
+}
+
+.passAction:focus-visible {
+  outline: 2px solid var(--b-accent);
+  outline-offset: 2px;
+}
+
+.passAction:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.passHint {
+  margin-top: 12px;
+  font-size: 0.8125rem;
+  color: var(--b-ink-dim);
+  max-width: 62ch;
+  line-height: 1.5;
+}
+
+/* ---------- Log ---------- */
+
+.sectionHead {
+  margin-top: 48px;
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.sectionTitle {
+  font-size: 1.0625rem;
+  font-weight: 800;
+}
+
+.logList {
+  margin-top: 12px;
+  border-top: 1.5px solid var(--b-ink);
+}
+
+.logRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 13px 2px;
+  border-bottom: 1px solid var(--b-border);
+  font-family: var(--b-font-mono);
+  font-size: 0.8125rem;
+}
+
+.logDate {
+  color: var(--b-ink-faint);
+  width: 64px;
+  flex-shrink: 0;
+}
+
+/* ---------- Teacher manifest ---------- */
+
+.statsRow {
+  margin-top: 24px;
+  display: flex;
+  gap: 0;
+  border: 1.5px solid var(--b-ink);
+  width: fit-content;
+}
+
+.statBlock {
+  padding: 12px 22px;
+  border-right: 1.5px solid var(--b-ink);
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.statBlock:last-child {
+  border-right: none;
+}
+
+.statValue {
+  font-family: var(--b-font-mono);
+  font-size: 1.5rem;
+  font-weight: 700;
+}
+
+.statLabel {
+  font-family: var(--b-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b-ink-dim);
+}
+
+.controls {
+  margin-top: 28px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.filterGroup {
+  display: flex;
+  border: 1.5px solid var(--b-ink);
+}
+
+.filterItem {
+  border: none;
+  background: transparent;
+  color: var(--b-ink-dim);
+  font-family: var(--b-font-mono);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  padding: 8px 14px;
+  cursor: pointer;
+  border-right: 1.5px solid var(--b-ink);
+  transition: background-color var(--dur-fast) var(--ease-out), color var(--dur-fast) var(--ease-out);
+}
+
+.filterItem:last-child {
+  border-right: none;
+}
+
+.filterItem:hover {
+  background: var(--b-accent-soft);
+}
+
+.filterItem:focus-visible {
+  outline: 2px solid var(--b-accent);
+  outline-offset: -2px;
+}
+
+.filterItemActive {
+  composes: filterItem;
+  background: var(--b-ink);
+  color: var(--b-surface);
+}
+
+.filterItemActive:hover {
+  background: var(--b-ink);
+}
+
+.searchInput {
+  flex: 1;
+  min-width: 160px;
+  padding: 8px 12px;
+  border: 1.5px solid var(--b-ink);
+  background: var(--b-surface-raised);
+  color: var(--b-ink);
+  font-family: var(--b-font-mono);
+  font-size: 0.8125rem;
+}
+
+.searchInput::placeholder {
+  color: var(--b-ink-faint);
+}
+
+.searchInput:focus-visible {
+  outline: 2px solid var(--b-accent);
+  outline-offset: 1px;
+}
+
+.manifest {
+  margin-top: 8px;
+  border-top: 1.5px solid var(--b-ink);
+}
+
+.manifestRow {
+  width: 100%;
+  display: grid;
+  grid-template-columns: 90px 1fr 90px 90px;
+  align-items: center;
+  gap: 14px;
+  padding: 11px 2px;
+  border-bottom: 1px solid var(--b-border);
+  background: transparent;
+  border-left: none;
+  border-right: none;
+  border-top: none;
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--b-font-mono);
+  font-size: 0.8125rem;
+  color: var(--b-ink);
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.manifestRow:hover {
+  background: var(--b-accent-soft);
+}
+
+.manifestRow:focus-visible {
+  outline: 2px solid var(--b-accent);
+  outline-offset: -2px;
+}
+
+@media (max-width: 620px) {
+  .manifestRow {
+    grid-template-columns: 1fr 70px;
+  }
+  .manifestGroup,
+  .manifestTime {
+    display: none;
+  }
+}
+
+.manifestGroup {
+  color: var(--b-ink-dim);
+}
+
+.manifestName {
+  font-family: var(--b-font-display);
+  font-weight: 600;
+}
+
+.manifestTime {
+  text-align: right;
+}
+
+.manifestStatus {
+  text-align: right;
+  font-weight: 700;
+  color: var(--b-ink-faint);
+}
+
+.manifestStatusActive {
+  composes: manifestStatus;
+  color: var(--b-confirm);
+}
+
+.emptyRow {
+  padding: 28px 2px;
+  color: var(--b-ink-dim);
+  font-size: 0.875rem;
+}
+
+/* ---------- Student detail modal ---------- */
+
+.modalScrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(33, 29, 20, 0.45);
+  z-index: 30;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  opacity: 0;
+  animation: b-scrim-in var(--dur-base) var(--ease-out) forwards;
+}
+
+@keyframes b-scrim-in {
+  to {
+    opacity: 1;
+  }
+}
+
+.modalCard {
+  width: min(460px, 100%);
+  background: var(--b-surface-raised);
+  border: 1.5px solid var(--b-ink);
+  border-radius: 4px;
+  padding: 28px 30px 30px;
+  transform: scale(0.94) rotate(-1deg);
+  opacity: 0;
+  animation: b-card-in var(--dur-base) var(--ease-stamp) forwards;
+}
+
+@keyframes b-card-in {
+  to {
+    transform: scale(1) rotate(0deg);
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .modalScrim,
+  .modalCard {
+    animation-duration: 1ms;
+  }
+}
+
+.modalClose {
+  border: 1.5px solid var(--b-ink);
+  background: transparent;
+  color: var(--b-ink);
+  font-family: var(--b-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 5px 10px;
+  cursor: pointer;
+  float: right;
+  transition: background-color var(--dur-fast) var(--ease-out);
+}
+
+.modalClose:hover {
+  background: var(--b-accent-soft);
+}
+
+.modalClose:focus-visible {
+  outline: 2px solid var(--b-accent);
+  outline-offset: 2px;
+}
+
+.modalName {
+  font-size: 1.375rem;
+  font-weight: 800;
+  margin-top: 20px;
+}
+
+.modalMeta {
+  color: var(--b-ink-dim);
+  font-size: 0.875rem;
+  margin-top: 4px;
+}
+
+.modalDivider {
+  margin: 20px 0;
+  border: none;
+  border-top: 1px dashed var(--b-border-strong);
+}
+
+/* ---------- History table ---------- */
+
+.tableWrap {
+  margin-top: 18px;
+  overflow-x: auto;
+  border-top: 1.5px solid var(--b-ink);
+}
+
+.table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 620px;
+  font-family: var(--b-font-mono);
+  font-size: 0.8125rem;
+}
+
+.table th {
+  text-align: left;
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b-ink-dim);
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--b-border-strong);
+  font-weight: 700;
+}
+
+.table td {
+  padding: 11px 10px;
+  border-bottom: 1px solid var(--b-border);
+}
+
+.flag {
+  color: var(--b-danger);
+  font-weight: 700;
+}
+
+/* ---------- States ---------- */
+
+.statesGrid {
+  margin-top: 22px;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 16px;
+}
+
+.stateCard {
+  border: 1.5px solid var(--b-ink);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--b-surface-raised);
+}
+
+.stateCardTitle {
+  font-family: var(--b-font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--b-ink-dim);
+}
+
+.feedbackOk {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 9px 12px;
+  border: 1.5px solid var(--b-confirm);
+  color: var(--b-confirm);
+  background: var(--b-confirm-soft);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.feedbackError {
+  padding: 10px 12px;
+  border: 1.5px solid var(--b-danger);
+  background: var(--b-danger-soft);
+  color: var(--b-danger);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+}
+
+.feedbackErrorTitle {
+  font-weight: 800;
+}
+
+.skeletonLine {
+  height: 12px;
+  background: repeating-linear-gradient(90deg, var(--b-border) 0 6px, transparent 6px 12px);
+}
+
+.emptyState {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  color: var(--b-ink-dim);
+  font-size: 0.8125rem;
+}
+
+.emptyStateTitle {
+  font-weight: 700;
+  color: var(--b-ink);
+}
+
+/* ---------- View transition ---------- */
+
+.viewEnter {
+  animation: b-view-in var(--dur-base) var(--ease-out);
+}
+
+@keyframes b-view-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .viewEnter {
+    animation-duration: 1ms;
+  }
+}
