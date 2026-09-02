@@ -1,10 +1,9 @@
 import "server-only";
 
-// Infraestructura para la restricción de red (CLAUDE.md §8). Todavía NO se
-// usa en ninguna ruta: no hay Server Action de fichaje ni proxy.ts que la
-// invoque. Se prepara ahora para no tener que rediseñarla cuando llegue la
-// fase de fichaje real, y para poder probarla en cuanto tengamos la IP
-// pública real del centro.
+// Restricción de red (CLAUDE.md §8). Usada por la Server Action `punch()`
+// (src/lib/punches/actions.ts): obtiene la IP del cliente con
+// `getClientIp()` y decide con `isAllowedNetwork()` si se permite fichar.
+// Es la única capa que decide esto — nunca el cliente.
 //
 // Nunca autorizar por rango privado (192.168.x.x, 10.x.x.x, 172.16.x.x...):
 // eso identifica la red LAN del cliente, no la red pública que ve el
@@ -58,7 +57,13 @@ function isIpv4InCidr(ip: string, cidr: string): boolean {
   const ipInt = ipv4ToInt(ip);
   const rangeInt = ipv4ToInt(range);
   const bits = bitsStr ? Number(bitsStr) : 32;
-  if (ipInt === null || rangeInt === null || !Number.isInteger(bits) || bits < 0 || bits > 32) {
+  if (
+    ipInt === null ||
+    rangeInt === null ||
+    !Number.isInteger(bits) ||
+    bits < 0 ||
+    bits > 32
+  ) {
     return false;
   }
   const mask = bits === 0 ? 0 : (~0 << (32 - bits)) >>> 0;
@@ -84,7 +89,9 @@ function cidrsOverlap(cidrA: string, cidrB: string): boolean {
 // completo 10.0.0.0/8. Sin la comprobación bidireccional se colaría.
 function isPrivateOrReserved(entry: string): boolean {
   const entryCidr = entry.includes("/") ? entry : `${entry}/32`;
-  return PRIVATE_OR_RESERVED_IPV4.some((range) => cidrsOverlap(entryCidr, range));
+  return PRIVATE_OR_RESERVED_IPV4.some((range) =>
+    cidrsOverlap(entryCidr, range),
+  );
 }
 
 let warnedAboutPrivateRange = false;
@@ -109,7 +116,7 @@ function getAllowedRanges(): string[] {
     warnedAboutPrivateRange = true;
     console.warn(
       "[network] ALLOWED_NETWORK_IPS contiene una IP o rango privado/reservado; " +
-        "se ha ignorado. Usa la IP pública que observa el servidor, no una IP de LAN."
+        "se ha ignorado. Usa la IP pública que observa el servidor, no una IP de LAN.",
     );
   }
 

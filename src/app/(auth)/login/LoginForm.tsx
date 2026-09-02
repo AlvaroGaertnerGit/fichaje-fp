@@ -3,6 +3,7 @@
 import { useActionState } from "react";
 
 import { Button } from "@/components/ui/button";
+import { PasswordField } from "@/components/ui/password-field";
 import { TextField } from "@/components/ui/text-field";
 import { login, type LoginState } from "./actions";
 
@@ -23,11 +24,10 @@ export function LoginForm() {
         disabled={pending}
         aria-describedby={state?.error ? "login-error" : undefined}
       />
-      <TextField
+      <PasswordField
         id="password"
         name="password"
         label="Contraseña"
-        type="password"
         autoComplete="current-password"
         required
         disabled={pending}

@@ -46,16 +46,37 @@ supabase gen types typescript --local  > src/types/database.ts
 `AuditLog`, `UserRole`, `PunchType`) derivados de `Database`, así que no hace
 falta tocarlo al regenerar.
 
-## Nota operativa: envío de email (confirmación de cuenta)
+## Nota operativa: Auth (estado actual del proyecto)
 
-El proyecto tiene activada la confirmación de email en Supabase Auth. Con el
-proveedor de email por defecto de Supabase (compartido, sin SMTP propio
-configurado), el límite de envío es muy bajo — se ha observado
-`over_email_send_rate_limit` con solo un puñado de altas en poco tiempo. Esto
-es una limitación de la configuración del proyecto, no del código: antes de
-manejar registros reales de alumnos hace falta configurar un proveedor SMTP
-propio en **Authentication → Settings → SMTP Settings** en el dashboard de
-Supabase.
+- **Confirm Email = OFF.** El registro público (`src/app/(auth)/registro`)
+  está adaptado a esta configuración: `signUp()` deja sesión activa de
+  inmediato y el flujo redirige directamente a `/`, sin ningún paso de
+  "revisa tu correo" (Fase 5.5.1). Si se reactivara la confirmación de email
+  desde el dashboard, `register()` ya no dejaría pasar ese caso silenciosamente
+  — lo trata como error y no crea una cuenta a medias (ver el comentario junto
+  a `if (!signUpData.session)` en `src/app/(auth)/registro/actions.ts`); haría
+  falta reintroducir el mensaje de "revisa tu correo" a propósito.
+- **Proveedor Email/Password.** Debe estar habilitado (Authentication →
+  Sign In / Providers → Email) tanto para registro como para login — se
+  confirmó en vivo que, si está desactivado, `signUp()` y
+  `signInWithPassword()` fallan con `email_provider_disabled` /
+  "Email logins are disabled" para **toda** la aplicación, no solo para el
+  registro.
+- **Límites de contraseña reales de Supabase Auth** (comprobados en vivo
+  contra el proyecto, no de memoria): mínimo 6 caracteres, máximo 72
+  (impuesto por bcrypt, no configurable). La aplicación usa
+  `MIN_PASSWORD_LENGTH = 8` (más estricto que el mínimo real, a propósito) y
+  `MAX_PASSWORD_LENGTH = 72` (igual al máximo real) en
+  `src/lib/auth/register.ts` — así nunca se acepta en el formulario/servidor
+  algo que Supabase fuera a rechazar.
+- **Envío de email compartido de Supabase.** Con la confirmación de email
+  desactivada, el registro ya no depende del envío de correo. Si en el
+  futuro se activa cualquier flujo que sí lo necesite (confirmación,
+  recuperación de contraseña), el proveedor de email por defecto de
+  Supabase (compartido, sin SMTP propio) tiene un límite de envío muy bajo
+  — se observó `over_email_send_rate_limit` con solo un puñado de intentos.
+  Configurar un SMTP propio en **Authentication → Settings → SMTP
+  Settings** antes de depender de esos flujos en producción.
 
 ## Decisiones de esquema a tener en cuenta
 

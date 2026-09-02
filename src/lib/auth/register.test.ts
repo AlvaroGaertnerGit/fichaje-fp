@@ -125,6 +125,40 @@ describe("validateRegistrationInput", () => {
       error: "Selecciona un curso válido.",
     });
   });
+
+  it("ASIR + curso 2 -> rechazado (aunque 'ASIR' y '2' sean, cada uno, valores válidos)", () => {
+    // Este es exactamente el FormData manipulado a mano del ajuste: alguien
+    // que se salte el <select> deshabilitado del cliente y envíe
+    // degree=ASIR&course=2 directamente. isValidDegree('ASIR') e
+    // isValidCourse('2') pasan por separado; lo que lo bloquea es la
+    // combinación (misma regla que src/lib/academic.ts, sin duplicarla).
+    expect(
+      validateRegistrationInput(validInput({ degree: "ASIR", course: "2" })),
+    ).toEqual({
+      error: "Ese curso no está disponible para el grado seleccionado.",
+    });
+  });
+
+  it("ASIR + curso 1 -> aceptado", () => {
+    const result = validateRegistrationInput(
+      validInput({ degree: "ASIR", course: "1" }),
+    );
+    expect("error" in result).toBe(false);
+  });
+
+  it("SMR + curso 1 -> aceptado", () => {
+    const result = validateRegistrationInput(
+      validInput({ degree: "SMR", course: "1" }),
+    );
+    expect("error" in result).toBe(false);
+  });
+
+  it("SMR + curso 2 -> aceptado", () => {
+    const result = validateRegistrationInput(
+      validInput({ degree: "SMR", course: "2" }),
+    );
+    expect("error" in result).toBe(false);
+  });
 });
 
 describe("buildStudentProfileInsert", () => {

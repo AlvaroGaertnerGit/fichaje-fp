@@ -1,4 +1,8 @@
-import { isValidCourse, isValidDegree } from "@/lib/academic";
+import {
+  isCourseAllowedForDegree,
+  isValidCourse,
+  isValidDegree,
+} from "@/lib/academic";
 import type { Course, Degree } from "@/types";
 
 // Lógica pura, sin Supabase ni Next.js: valida el formulario y construye la
@@ -67,6 +71,15 @@ export function validateRegistrationInput(
   }
   if (!isValidCourse(input.course)) {
     return { error: "Selecciona un curso válido." };
+  }
+  // Grado y curso individualmente válidos no bastan: ASIR + 2º no existe
+  // como oferta académica, aunque "ASIR" y "2" sean, cada uno por separado,
+  // valores permitidos. Sin este chequeo, un FormData manipulado a mano
+  // (degree=ASIR, course=2) pasaría las dos comprobaciones anteriores.
+  if (!isCourseAllowedForDegree(input.degree, input.course)) {
+    return {
+      error: "Ese curso no está disponible para el grado seleccionado.",
+    };
   }
 
   return {

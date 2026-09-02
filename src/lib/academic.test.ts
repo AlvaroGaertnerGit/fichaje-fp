@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDegreeCourse, isValidCourse, isValidDegree } from "./academic";
+import {
+  coursesForDegree,
+  formatDegreeCourse,
+  isCourseAllowedForDegree,
+  isValidCourse,
+  isValidDegree,
+} from "./academic";
 
 describe("isValidDegree", () => {
   it("acepta SMR y ASIR", () => {
@@ -25,6 +31,32 @@ describe("isValidCourse", () => {
     expect(isValidCourse("3")).toBe(false);
     expect(isValidCourse("1º SMR")).toBe(false);
     expect(isValidCourse("")).toBe(false);
+  });
+});
+
+describe("coursesForDegree / isCourseAllowedForDegree", () => {
+  it("SMR oferta 1º y 2º", () => {
+    expect(coursesForDegree("SMR")).toEqual(["1", "2"]);
+  });
+
+  it("ASIR solo oferta 1º", () => {
+    expect(coursesForDegree("ASIR")).toEqual(["1"]);
+  });
+
+  it("ASIR + curso 1 -> válido", () => {
+    expect(isCourseAllowedForDegree("ASIR", "1")).toBe(true);
+  });
+
+  it("ASIR + curso 2 -> inválido (no existe esa oferta académica)", () => {
+    expect(isCourseAllowedForDegree("ASIR", "2")).toBe(false);
+  });
+
+  it("SMR + curso 1 -> válido", () => {
+    expect(isCourseAllowedForDegree("SMR", "1")).toBe(true);
+  });
+
+  it("SMR + curso 2 -> válido", () => {
+    expect(isCourseAllowedForDegree("SMR", "2")).toBe(true);
   });
 });
 

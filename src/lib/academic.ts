@@ -27,6 +27,28 @@ export function isValidCourse(value: string): value is Course {
   return (COURSE_VALUES as readonly string[]).includes(value);
 }
 
+// Oferta académica real: SMR tiene 1º y 2º, ASIR solo tiene 1º (no existe
+// un 2º de ASIR en el centro). Única fuente de verdad para el <select>
+// dependiente de /registro y para la validación de servidor — nunca
+// pueden desincronizarse porque ambos leen de aquí.
+export const COURSES_BY_DEGREE: Readonly<Record<Degree, readonly Course[]>> = {
+  SMR: ["1", "2"],
+  ASIR: ["1"],
+};
+
+/** Cursos ofertados para un grado (para construir el <select> dependiente). */
+export function coursesForDegree(degree: Degree): readonly Course[] {
+  return COURSES_BY_DEGREE[degree];
+}
+
+/** ¿Existe esa combinación grado+curso? (p.ej. ASIR + 2º no está en la oferta). */
+export function isCourseAllowedForDegree(
+  degree: Degree,
+  course: Course,
+): boolean {
+  return COURSES_BY_DEGREE[degree].includes(course);
+}
+
 /** "SMR 1º" — solo para mostrar; el dato se guarda siempre por separado. */
 export function formatDegreeCourse(
   degree: Degree | null,
