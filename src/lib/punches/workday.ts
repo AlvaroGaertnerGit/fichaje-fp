@@ -1,4 +1,4 @@
-import type { Punch } from "@/types";
+import type { Punch, PunchSource } from "@/types";
 
 // No existe (ni hace falta crear) una entidad `workday` en la base de
 // datos: una jornada es, siempre, un par IN→OUT derivado de los punches —
@@ -7,6 +7,10 @@ import type { Punch } from "@/types";
 export type Workday = {
   checkIn: string; // timestamp ISO del punch IN
   checkOut: string | null; // timestamp ISO del punch OUT, o null si sigue abierta
+  // Origen del punch OUT — permite distinguir en el historial una salida
+  // que pulsó el propio alumno de un cierre automático de las 15:00 (Fase
+  // 6.2 §19). null si la jornada sigue abierta (todavía no hay OUT).
+  checkOutSource: PunchSource | null;
 };
 
 /**
@@ -24,12 +28,16 @@ export function pairPunchesIntoWorkdays(punchesMostRecentFirst: Punch[]): Workda
     if (p.type === "IN") {
       open = p;
     } else if (open) {
-      workdays.push({ checkIn: open.timestamp, checkOut: p.timestamp });
+      workdays.push({
+        checkIn: open.timestamp,
+        checkOut: p.timestamp,
+        checkOutSource: p.source,
+      });
       open = null;
     }
   }
   if (open) {
-    workdays.push({ checkIn: open.timestamp, checkOut: null });
+    workdays.push({ checkIn: open.timestamp, checkOut: null, checkOutSource: null });
   }
 
   return workdays.reverse();

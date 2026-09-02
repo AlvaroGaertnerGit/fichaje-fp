@@ -111,6 +111,7 @@ export type Database = {
           created_at: string;
           id: string;
           ip_address: unknown;
+          source: Database["public"]["Enums"]["punch_source"];
           timestamp: string;
           type: Database["public"]["Enums"]["punch_type"];
           user_agent: string | null;
@@ -120,6 +121,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           ip_address?: unknown;
+          source?: Database["public"]["Enums"]["punch_source"];
           timestamp?: string;
           type: Database["public"]["Enums"]["punch_type"];
           user_agent?: string | null;
@@ -129,6 +131,7 @@ export type Database = {
           created_at?: string;
           id?: string;
           ip_address?: unknown;
+          source?: Database["public"]["Enums"]["punch_source"];
           timestamp?: string;
           type?: Database["public"]["Enums"]["punch_type"];
           user_agent?: string | null;
@@ -229,10 +232,15 @@ export type Database = {
           updated_at: string;
         };
       };
+      close_open_student_punches: {
+        Args: Record<PropertyKey, never>;
+        Returns: number;
+      };
     };
     Enums: {
       course: "1" | "2";
       degree: "SMR" | "ASIR";
+      punch_source: "manual" | "automatic";
       punch_type: "IN" | "OUT";
       user_role: "student" | "teacher" | "admin";
     };
@@ -367,6 +375,7 @@ export const Constants = {
     Enums: {
       course: ["1", "2"],
       degree: ["SMR", "ASIR"],
+      punch_source: ["manual", "automatic"],
       punch_type: ["IN", "OUT"],
       user_role: ["student", "teacher", "admin"],
     },

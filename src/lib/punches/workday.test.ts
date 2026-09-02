@@ -1,9 +1,14 @@
 import { describe, expect, it } from "vitest";
 
 import { formatDuration, pairPunchesIntoWorkdays, workdayDurationMs } from "./workday";
-import type { Punch } from "@/types";
+import type { Punch, PunchSource } from "@/types";
 
-function punch(id: string, type: "IN" | "OUT", timestamp: string): Punch {
+function punch(
+  id: string,
+  type: "IN" | "OUT",
+  timestamp: string,
+  source: PunchSource = "manual",
+): Punch {
   return {
     id,
     user_id: "u1",
@@ -12,6 +17,7 @@ function punch(id: string, type: "IN" | "OUT", timestamp: string): Punch {
     ip_address: null,
     user_agent: null,
     created_at: timestamp,
+    source,
   };
 }
 
@@ -20,20 +26,41 @@ describe("pairPunchesIntoWorkdays", () => {
     expect(pairPunchesIntoWorkdays([])).toEqual([]);
   });
 
-  it("una jornada completa (más reciente primero, como getMyPunches)", () => {
+  it("una jornada completa con salida manual (más reciente primero, como getMyPunches)", () => {
     const punches = [
       punch("2", "OUT", "2026-09-02T14:00:00.000Z"),
       punch("1", "IN", "2026-09-02T08:00:00.000Z"),
     ];
     expect(pairPunchesIntoWorkdays(punches)).toEqual([
-      { checkIn: "2026-09-02T08:00:00.000Z", checkOut: "2026-09-02T14:00:00.000Z" },
+      {
+        checkIn: "2026-09-02T08:00:00.000Z",
+        checkOut: "2026-09-02T14:00:00.000Z",
+        checkOutSource: "manual",
+      },
     ]);
   });
 
-  it("jornada abierta (IN sin OUT) queda con checkOut: null", () => {
+  it("jornada abierta (IN sin OUT) queda con checkOut/checkOutSource: null", () => {
     const punches = [punch("1", "IN", "2026-09-02T08:00:00.000Z")];
     expect(pairPunchesIntoWorkdays(punches)).toEqual([
-      { checkIn: "2026-09-02T08:00:00.000Z", checkOut: null },
+      { checkIn: "2026-09-02T08:00:00.000Z", checkOut: null, checkOutSource: null },
+    ]);
+  });
+
+  // Fase 6.2: el cierre automático de las 15:00 inserta un OUT con
+  // source='automatic' — pairPunchesIntoWorkdays debe conservar ese dato
+  // sin interpretarlo (solo lo transporta, la UI decide qué mostrar).
+  it("jornada cerrada por el mantenimiento automático -> checkOutSource: 'automatic'", () => {
+    const punches = [
+      punch("2", "OUT", "2026-09-02T14:00:00.000Z", "automatic"),
+      punch("1", "IN", "2026-09-02T08:03:00.000Z"),
+    ];
+    expect(pairPunchesIntoWorkdays(punches)).toEqual([
+      {
+        checkIn: "2026-09-02T08:03:00.000Z",
+        checkOut: "2026-09-02T14:00:00.000Z",
+        checkOutSource: "automatic",
+      },
     ]);
   });
 
@@ -53,13 +80,16 @@ describe("pairPunchesIntoWorkdays", () => {
 
 describe("workdayDurationMs / formatDuration", () => {
   it("jornada abierta -> duración null", () => {
-    expect(workdayDurationMs({ checkIn: "2026-09-02T08:00:00.000Z", checkOut: null })).toBeNull();
+    expect(
+      workdayDurationMs({ checkIn: "2026-09-02T08:00:00.000Z", checkOut: null, checkOutSource: null }),
+    ).toBeNull();
   });
 
   it("calcula la duración exacta de una jornada completa", () => {
     const ms = workdayDurationMs({
       checkIn: "2026-09-02T09:03:17.000Z",
       checkOut: "2026-09-02T17:04:52.000Z",
+      checkOutSource: "manual",
     });
     expect(ms).toBe((8 * 3600 + 1 * 60 + 35) * 1000);
   });

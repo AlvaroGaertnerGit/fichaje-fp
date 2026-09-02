@@ -222,3 +222,86 @@ eso es exactamente lo que resuelve el endurecimiento de
   red, compensando con auditoría (actor + IP quedan siempre registrados).
 - **Reset de contraseña administrativo** queda fuera de esta fase — no se
   añadió ningún valor nuevo al `CHECK` de `audit_logs.action` para eso.
+
+## Fase 6.2 — Cierre automático de jornadas (pg_cron)
+
+Regla de negocio: todos los días, a las 15:00 hora de Madrid, cualquier
+alumno **activo** cuya jornada siga abierta (último punch = `IN`, abierto
+**hoy**) recibe un `OUT` automático con `timestamp = 15:00 Europe/Madrid de
+hoy` — nunca la hora real en la que el job llegó a ejecutarse. Se ejecuta
+íntegramente dentro de Postgres (`pg_cron`), nunca desde Next.js/Vercel.
+
+### Dónde vive
+
+- `public.today_business_close_at(p_now timestamptz default now())` —
+  función pura: "las 15:00 hora de Madrid del día de Madrid de `p_now`",
+  como `timestamptz`. Usa el nombre de zona IANA `Europe/Madrid` (no un
+  offset fijo), así que resuelve correctamente tanto en CET (invierno,
+  UTC+1) como en CEST (verano, UTC+2) sin ningún caso especial. `p_now` es
+  un parámetro de prueba con valor por defecto `now()` — nunca se expone
+  en ninguna UI, no es un "horario configurable".
+- `public.close_open_student_punches(p_now timestamptz default now())` —
+  inserta un `OUT` (`source = 'automatic'`) para cada alumno activo cuyo
+  último punch sea `IN` de hoy. Nunca actualiza ni borra punches
+  existentes, solo inserta. Idempotente y segura frente a concurrencia por
+  construcción: cada insert pasa por el trigger `punches_check_sequence`
+  ya existente (mismo advisory lock por `user_id`, mismo rechazo si el
+  alumno ya está `OUT`) — un fallo aislado por alumno se captura y no
+  aborta el resto del lote.
+- Job de `pg_cron`: `close_open_student_punches`, `*/5 12-16 * * *`
+  (cada 5 minutos, 12:00–16:59 **UTC**), corre como `postgres`.
+
+### Por qué el cron no es simplemente "0 15 * * *"
+
+`pg_cron` no tiene zona horaria por job — todas las expresiones de esta
+instancia se interpretan en UTC (`cron.job` no tiene columna de zona; es
+una GUC de servidor compartida por todos los jobs, no algo fijable por
+migración de este proyecto). Escribir `0 15 * * *` ficharía a las 16:00 o
+17:00 Madrid según la estación — incorrecto siempre.
+
+En vez de traducir "15:00 Madrid" a un cron UTC fijo (se rompería dos
+veces al año igual), el job corre cada 5 minutos dentro de una ventana
+UTC que cubre ambos casos reales del año con margen:
+
+```
+CET (invierno): 15:00 Madrid = 14:00 UTC
+CEST (verano):  15:00 Madrid = 13:00 UTC
+ventana del job: 12:00–16:59 UTC
+```
+
+La ventana solo decide *cuándo se le da la oportunidad* a la función de
+comprobar si toca cerrar algo; `today_business_close_at()` es quien decide
+de verdad la hora de negocio real. Las invocaciones fuera de horario, o en
+un día sin nada que cerrar, son no-op baratos (una consulta contra
+`latest_punches`, normalmente sin filas).
+
+### Cómo distinguir un `OUT` automático
+
+`punches.source` (`enum: manual | automatic`, `not null default 'manual'`)
+— nunca se infiere de `user_agent`/`ip_address` (ambos son `null` en un
+punch automático). `punches_insert_own` exige `source = 'manual'` para
+cualquier insert de un `authenticated`: un alumno no puede marcar su
+propio `OUT` como automático vía una petición directa a la Data API. La
+única vía para `source = 'automatic'` es la función de mantenimiento,
+que corre como `postgres` (bypassa RLS) — verificado en vivo.
+
+### Permisos
+
+`today_business_close_at`/`close_open_student_punches` son
+`SECURITY INVOKER` (el valor por defecto — no hace falta `DEFINER`: el
+job de `pg_cron` siempre las invoca como `postgres`, que ya tiene
+`rolbypassrls = true`, comprobado en vivo). `EXECUTE` revocado
+explícitamente de `PUBLIC`/`anon`/`authenticated` en ambas — un alumno o
+profesor autenticado recibe `permission denied for function` si intenta
+invocarlas por `.rpc()` (verificado en vivo contra el proyecto real).
+
+### Limitación conocida
+
+Si el job dejara de ejecutarse durante toda su ventana diaria (12:00–16:59
+UTC) por una caída prolongada, el `IN` abierto de ese día no se cerraría
+nunca automáticamente — al día siguiente, `today_business_close_at()` ya
+apunta a un día distinto y la función excluye explícitamente cualquier
+`IN` que no sea de "hoy" (evita que una anomalía histórica se convierta en
+un `OUT` automático de un día que no le corresponde). Ese caso quedaría
+como corrección manual — fuera de alcance del MVP, no se ha construido
+ningún sistema de recuperación histórica para él.

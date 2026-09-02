@@ -13,5 +13,6 @@ export type LatestPunch = Database["public"]["Views"]["latest_punches"]["Row"];
 
 export type UserRole = Database["public"]["Enums"]["user_role"];
 export type PunchType = Database["public"]["Enums"]["punch_type"];
+export type PunchSource = Database["public"]["Enums"]["punch_source"];
 export type Degree = Database["public"]["Enums"]["degree"];
 export type Course = Database["public"]["Enums"]["course"];

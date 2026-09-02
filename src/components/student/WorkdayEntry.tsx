@@ -6,6 +6,11 @@ import { formatDuration, workdayDurationMs, type Workday } from "@/lib/punches/w
 export function WorkdayEntry({ workday }: { workday: Workday }) {
   const durationMs = workdayDurationMs(workday);
   const incomplete = workday.checkOut === null;
+  // Fase 6.2: una salida que generó el cierre automático de las 15:00, no
+  // el propio alumno. Nunca solo color — la palabra "AUTOMÁTICA" es la que
+  // informa, el borde neutro (no el rojo de "Sin salida": no es un error)
+  // es solo apoyo visual, mismo criterio que StatusMark/ActiveMark.
+  const autoClosed = workday.checkOutSource === "automatic";
 
   return (
     <details className="border-b border-dashed border-line">
@@ -21,6 +26,11 @@ export function WorkdayEntry({ workday }: { workday: Workday }) {
               Sin salida
             </span>
           )}
+          {autoClosed && (
+            <span className="border border-line-strong px-1.5 py-0.5 text-[0.625rem] font-bold uppercase tracking-wide text-ink-dim">
+              Salida automática
+            </span>
+          )}
         </span>
       </summary>
       <div className="grid grid-cols-3 gap-4 border-t border-dashed border-line px-1 pb-4 pt-3 font-mono text-xs">
@@ -32,6 +42,7 @@ export function WorkdayEntry({ workday }: { workday: Workday }) {
           <div className="uppercase tracking-wide text-ink-faint">Salida</div>
           <div className="mt-1 text-sm text-ink">
             {incomplete ? "-" : formatPunchTime(workday.checkOut as string)}
+            {autoClosed && <span className="ml-1.5 text-ink-faint">(automática)</span>}
           </div>
         </div>
         <div>

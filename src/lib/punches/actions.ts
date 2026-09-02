@@ -125,6 +125,12 @@ export async function punch(): Promise<PunchResult> {
       type,
       ip_address: ip,
       user_agent: userAgent,
+      // Explícito a propósito, aunque coincida con el DEFAULT de la
+      // columna: este es el único punto de la app donde un alumno ficha
+      // por sí mismo — el cierre automático de las 15:00 (Fase 6.2) nunca
+      // pasa por aquí, vive por completo en la función SQL
+      // close_open_student_punches().
+      source: "manual",
     })
     .select("id, type, timestamp")
     .single();
