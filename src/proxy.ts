@@ -1,6 +1,12 @@
 import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 
+import {
+  AUTH_CONFIRM_PATH,
+  RECOVERY_COOKIE,
+  RESET_PASSWORD_PATH,
+} from "@/lib/auth/password-reset";
+
 // Next.js 16: `middleware.ts` se ha renombrado a `proxy.ts` (misma función).
 //
 // Esto es una redirección OPTIMISTA, no la barrera de seguridad. Solo lee
@@ -45,10 +51,30 @@ export async function proxy(request: NextRequest) {
   const isAuthenticated = Boolean(data?.claims);
 
   const { pathname } = request.nextUrl;
-  // /registro es pública igual que /login: un alumno sin cuenta debe poder
-  // llegar a ambas sin estar autenticado. Un usuario ya autenticado no
-  // tiene motivo para volver a ninguna de las dos (ver §13, Fase 5.5).
-  const isPublicAuthRoute = pathname === "/login" || pathname === "/registro";
+
+  // Flujo de recuperación: el callback del correo y el formulario de nueva
+  // contraseña deciden por sí mismos (en servidor) si la sesión de
+  // recuperación es válida; aquí no se redirige en ningún sentido.
+  if (pathname === AUTH_CONFIRM_PATH || pathname === RESET_PASSWORD_PATH) {
+    return response;
+  }
+
+  // Una sesión abierta por un enlace de recuperación no es un login normal:
+  // mientras exista la marca, solo sirve para elegir la contraseña nueva.
+  if (isAuthenticated && request.cookies.has(RECOVERY_COOKIE)) {
+    const url = request.nextUrl.clone();
+    url.pathname = RESET_PASSWORD_PATH;
+    url.search = "";
+    return NextResponse.redirect(url);
+  }
+
+  // /registro y /recuperar-contrasena son públicas igual que /login: hay
+  // que poder llegar sin estar autenticado. Un usuario ya autenticado no
+  // tiene motivo para volver a ninguna (ver §13, Fase 5.5).
+  const isPublicAuthRoute =
+    pathname === "/login" ||
+    pathname === "/registro" ||
+    pathname === "/recuperar-contrasena";
 
   if (!isAuthenticated && !isPublicAuthRoute) {
     const url = request.nextUrl.clone();

@@ -78,6 +78,27 @@ falta tocarlo al regenerar.
   Configurar un SMTP propio en **Authentication → Settings → SMTP
   Settings** antes de depender de esos flujos en producción.
 
+## Recuperación de contraseña
+
+Flujo: `/login` → `/recuperar-contrasena` (`resetPasswordForEmail`, mensaje
+siempre genérico) → correo de Supabase → `/auth/confirm` (verifica el
+enlace y fija la cookie httpOnly `fichaje_pw_recovery`) →
+`/restablecer-contrasena` (`updateUser`, después `signOut` global) →
+`/login?reset=ok`. Mientras exista la cookie, `proxy.ts` confina la sesión de
+recuperación a `/restablecer-contrasena`. Configuración necesaria en el
+dashboard:
+
+- **Authentication → URL Configuration**: Site URL
+  `https://fichaje-fp.vercel.app` y en Redirect URLs
+  `https://fichaje-fp.vercel.app/auth/confirm`. Opcional: variable
+  `SITE_URL` en Vercel para otro dominio.
+- **Authentication → Email Templates → Reset Password** (recomendado):
+  cambiar el enlace a
+  `{{ .SiteURL }}/auth/confirm?token_hash={{ .TokenHash }}&type=recovery`.
+  Con la plantilla por defecto (`{{ .ConfirmationURL }}`, PKCE) el enlace
+  solo funciona en el mismo navegador donde se pidió la recuperación.
+- **SMTP**: ver la nota sobre el envío compartido más arriba.
+
 ## Decisiones de esquema a tener en cuenta
 
 - **Sin trigger en `auth.users`**: desde el 21-04-2025 Supabase restringe la

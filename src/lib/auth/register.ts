@@ -41,7 +41,7 @@ export const MIN_PASSWORD_LENGTH = 8;
 export const MAX_PASSWORD_LENGTH = 72;
 // Simple a propósito: comprobación de forma (usuario@dominio.tld), no de
 // entregabilidad — eso ya lo valida Supabase Auth al crear el usuario real.
-const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+export const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export function validateRegistrationInput(
   input: RegistrationInput,

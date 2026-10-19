@@ -7,7 +7,7 @@ import { LoginForm } from "./LoginForm";
 export default async function LoginPage({
   searchParams,
 }: {
-  searchParams: Promise<{ error?: string }>;
+  searchParams: Promise<{ error?: string; reset?: string }>;
 }) {
   const state = await getSessionState();
 
@@ -18,7 +18,7 @@ export default async function LoginPage({
     redirect("/cuenta-desactivada");
   }
 
-  const { error } = await searchParams;
+  const { error, reset } = await searchParams;
 
   return (
     <>
@@ -35,7 +35,22 @@ export default async function LoginPage({
         </p>
       )}
 
+      {reset === "ok" && (
+        <p role="status" className="mb-5 border border-stamp bg-stamp-soft px-4 py-2 text-sm text-stamp-ink">
+          Contraseña actualizada. Inicia sesión con tu nueva contraseña.
+        </p>
+      )}
+
       <LoginForm />
+
+      <p className="mt-4 text-center text-sm">
+        <Link
+          href="/recuperar-contrasena"
+          className="text-ink-dim underline decoration-line-strong underline-offset-4 hover:text-stamp"
+        >
+          ¿Has olvidado tu contraseña?
+        </Link>
+      </p>
 
       <p className="mt-6 text-center text-sm text-ink-dim">
         ¿No tienes cuenta?{" "}
